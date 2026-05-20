@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>픽셀 비</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; }
+    canvas { display: block; }
+
+    #ui {
+      position: fixed;
+      bottom: 24px;
+      width: 100%;
+      text-align: center;
+      color: rgba(160, 210, 255, 0.7);
+      font-family: monospace;
+      font-size: 14px;
+      pointer-events: none;
+      transition: opacity 1s;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">카메라를 허용하면 시작됩니다 ☂</div>
+
+  <!-- p5.js: 그림 그리기 & 애니메이션 -->
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+
+  <!-- MediaPipe: 사람 감지 AI -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js" crossorigin="anonymous"></script>
+
+  <!-- 우리가 만드는 코드 -->
+  <script src="sketch.js"></script>
+</body>
+</html>
