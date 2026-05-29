@@ -7,23 +7,62 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #000; overflow: hidden; }
-    canvas { display: block; }
+    canvas { display: block; pointer-events: none; }
 
     #ui {
       position: fixed;
-      bottom: 24px;
+      bottom: 80px;
       width: 100%;
       text-align: center;
-      color: rgba(160, 210, 255, 0.7);
-      font-family: monospace;
-      font-size: 14px;
       pointer-events: none;
-      transition: opacity 1s;
     }
+
+    #city-bar {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      display: flex;
+      gap: 8px;
+      padding: 16px 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      z-index: 10;
+    }
+
+    .city-btn {
+      background: rgba(8, 12, 35, 0.7);
+      border: 1px solid rgba(160, 210, 255, 0.25);
+      color: rgba(160, 210, 255, 0.55);
+      font-family: monospace;
+      font-size: 11px;
+      padding: 6px 12px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.2s;
+      backdrop-filter: blur(4px);
+    }
+
+    .city-btn:hover {
+      border-color: rgba(160, 210, 255, 0.5);
+      color: rgba(160, 210, 255, 0.8);
+    }
+
+    .city-btn.active {
+      border-color: rgba(160, 210, 255, 0.85);
+      color: rgba(160, 210, 255, 1);
+      background: rgba(160, 210, 255, 0.12);
+    }
+
+    .city-name { font-size: 12px; }
+    .city-mm   { font-size: 10px; opacity: 0.75; }
   </style>
 </head>
 <body>
-  <div id="ui">카메라를 허용하면 시작됩니다 ☂</div>
+  <div id="ui"></div>
+  <div id="city-bar"></div>
 
   <!-- p5.js: 그림 그리기 & 애니메이션 -->
   <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>

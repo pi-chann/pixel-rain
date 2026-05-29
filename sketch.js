@@ -19,7 +19,89 @@ let maskH = 0;
 const maskCanvas = document.createElement('canvas');
 const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
 
-const DROP_COUNT = 200;
+// ================================================================
+// 도시별 날씨 연동
+// ================================================================
+const CITIES = [
+  { id: 'Seoul',    label: '서울' },
+  { id: 'Tokyo',    label: '도쿄' },
+  { id: 'New+York', label: '뉴욕' },
+  { id: 'London',   label: '런던' },
+];
+
+let cityData            = {};   // { cityId: { precip, label } }
+let activeCity          = 'Seoul';
+let targetDropCount     = 100;
+let speedMultiplier     = 1.0;
+let segmentationStarted = false;
+
+function precipToConfig(mm) {
+  if (mm === 0)  return { count:  20, speed: 0.6, label: '맑음'    };
+  if (mm < 1)    return { count:  70, speed: 0.9, label: '이슬비'  };
+  if (mm < 3)    return { count: 140, speed: 1.1, label: '약한 비' };
+  if (mm < 8)    return { count: 230, speed: 1.4, label: '보통 비' };
+  if (mm < 20)   return { count: 370, speed: 1.8, label: '강한 비' };
+  return                { count: 520, speed: 2.4, label: '폭우'    };
+}
+
+function syncDropCount() {
+  while (drops.length > targetDropCount) drops.pop();
+  while (drops.length < targetDropCount) drops.push(new Drop());
+}
+
+function selectCity(cityId) {
+  activeCity = cityId;
+  const d = cityData[cityId];
+  if (d) {
+    const cfg = precipToConfig(d.precip);
+    targetDropCount = cfg.count;
+    speedMultiplier = cfg.speed;
+    syncDropCount();
+  }
+  renderCityBar();
+}
+
+async function fetchCityRain(cityId) {
+  try {
+    const res  = await fetch(`https://wttr.in/${cityId}?format=j1`);
+    const data = await res.json();
+    const mm   = parseFloat(data?.current_condition?.[0]?.precipMM ?? 0);
+    const cfg  = precipToConfig(mm);
+    cityData[cityId] = { precip: mm, label: cfg.label };
+  } catch {
+    cityData[cityId] = { precip: null, label: '–' };
+  }
+}
+
+async function fetchAllCities() {
+  await Promise.allSettled(CITIES.map(c => fetchCityRain(c.id)));
+  selectCity(activeCity);   // 현재 선택 도시로 비 세기 반영
+  renderCityBar();
+}
+
+function renderCityBar() {
+  const bar = document.getElementById('city-bar');
+  if (!bar) return;
+
+  bar.innerHTML = CITIES.map(c => {
+    const d        = cityData[c.id];
+    const mm       = d?.precip != null ? `${d.precip}mm` : '…';
+    const isActive = c.id === activeCity;
+    return `<button class="city-btn${isActive ? ' active' : ''}" data-city="${c.id}">
+              <span class="city-name">${c.label}</span>
+              <span class="city-mm">${mm}</span>
+            </button>`;
+  }).join('');
+}
+
+function setupCityBar() {
+  const bar = document.getElementById('city-bar');
+  if (!bar) return;
+  bar.addEventListener('click', e => {
+    const btn = e.target.closest('[data-city]');
+    if (btn) selectCity(btn.dataset.city);
+  });
+}
 
 // ================================================================
 // p5.js 진입점: setup()은 처음 한 번만 실행
@@ -36,10 +118,17 @@ function setup() {
   // AI 감지 시작
   setupSegmentation();
 
-  // 빗방울 생성 — scatter: true면 처음에 화면 전체에 퍼뜨림
-  for (let i = 0; i < DROP_COUNT; i++) {
+  // 도시 버튼 클릭 이벤트 (한 번만 등록)
+  setupCityBar();
+
+  // 빗방울 초기 배치 (날씨 데이터 오기 전 기본값으로)
+  for (let i = 0; i < targetDropCount; i++) {
     drops.push(new Drop(true));
   }
+
+  // 날씨 즉시 가져오고 이후 10분마다 갱신
+  fetchAllCities();
+  setInterval(fetchAllCities, 10 * 60 * 1000);
 }
 
 // ================================================================
@@ -126,9 +215,11 @@ function setupSegmentation() {
     maskW = maskCanvas.width;
     maskH = maskCanvas.height;
 
-    // 카메라 연결되면 안내 메시지 숨기기
-    const ui = document.getElementById('ui');
-    if (ui) ui.style.opacity = '0';
+    // 카메라 연결되면 도시 바 한 번만 표시 (이후엔 날씨 데이터 올 때만 갱신)
+    if (!segmentationStarted) {
+      segmentationStarted = true;
+      renderCityBar();
+    }
   });
 
   // 매 프레임마다 웹캠 영상을 AI에 전달
@@ -191,7 +282,7 @@ class Drop {
       return;
     }
 
-    this.y += this.speed;
+    this.y += this.speed * speedMultiplier;
 
     if (this.y >= height) {
       // 바닥에 닿음
